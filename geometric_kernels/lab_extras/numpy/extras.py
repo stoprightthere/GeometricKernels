@@ -1,11 +1,12 @@
+from typing import TypeAlias
+
 import lab as B
 import numpy as np
-from beartype.typing import Any, List, Optional
+from beartype.typing import Any
 from lab import dispatch
-from plum import Union
 from scipy.sparse import spmatrix
 
-_Numeric = Union[B.Number, B.NPNumeric]
+_Numeric: TypeAlias = B.Number | B.NPNumeric
 
 
 @dispatch
@@ -17,7 +18,7 @@ def take_along_axis(a: _Numeric, index: _Numeric, axis: int = 0) -> _Numeric:  #
 
 
 @dispatch
-def from_numpy(_: B.NPNumeric, b: Union[List, B.NPNumeric, B.Number]):  # type: ignore
+def from_numpy(_: B.NPNumeric, b: list | B.NPNumeric | B.Number):  # type: ignore
     """
     Converts the array `b` to a tensor of the same backend as `a`
     """
@@ -33,7 +34,7 @@ def trapz(y: _Numeric, x: _Numeric, dx: _Numeric = 1.0, axis: int = -1):  # type
 
 
 @dispatch
-def norm(x: _Numeric, ord: Optional[Any] = None, axis: Optional[int] = None):  # type: ignore
+def norm(x: _Numeric, ord: Any | None = None, axis: int | None = None):  # type: ignore
     """
     Matrix or vector norm.
     """

@@ -1,13 +1,12 @@
-import sys
+from typing import TypeAlias
 
 import lab as B
 import tensorflow as tf
 import tensorflow_probability as tfp
-from beartype.typing import Any, List, Optional
+from beartype.typing import Any
 from lab import dispatch
-from plum import Union
 
-_Numeric = Union[B.Number, B.TFNumeric, B.NPNumeric]
+_Numeric: TypeAlias = B.Number | B.TFNumeric | B.NPNumeric
 
 
 @dispatch
@@ -15,15 +14,11 @@ def take_along_axis(a: _Numeric, index: _Numeric, axis: int = 0) -> _Numeric:  #
     """
     Gathers elements of `a` along `axis` at `index` locations.
     """
-    if sys.version_info[:2] <= (3, 9):
-        index = tf.cast(index, tf.int32)
-    return tf.experimental.numpy.take_along_axis(
-        a, index, axis=axis
-    )  # the absence of explicit cast to int64 causes an error for Python 3.9 and below
+    return tf.experimental.numpy.take_along_axis(a, index, axis=axis)
 
 
 @dispatch
-def from_numpy(_: B.TFNumeric, b: Union[List, B.Numeric, B.NPNumeric, B.TFNumeric]):  # type: ignore
+def from_numpy(_: B.TFNumeric, b: list | B.Numeric | B.NPNumeric | B.TFNumeric):  # type: ignore
     """
     Converts the array `b` to a tensor of the same backend as `a`
     """
@@ -39,7 +34,7 @@ def trapz(y: _Numeric, x: _Numeric, dx=None, axis=-1):  # type: ignore
 
 
 @dispatch
-def norm(x: _Numeric, ord: Optional[Any] = None, axis: Optional[int] = None):  # type: ignore
+def norm(x: _Numeric, ord: Any | None = None, axis: int | None = None):  # type: ignore
     """
     Matrix or vector norm.
     """

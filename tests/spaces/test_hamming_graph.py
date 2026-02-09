@@ -1,7 +1,6 @@
 import lab as B
 import numpy as np
 import pytest
-from plum import Tuple
 
 from geometric_kernels.kernels import MaternGeometricKernel
 from geometric_kernels.spaces import HammingGraph, HypercubeGraph
@@ -11,7 +10,7 @@ from ..helper import check_function_with_backend
 
 
 @pytest.fixture(params=[(1, 2), (2, 2), (5, 2), (10, 2), (10, 4)])
-def inputs(request) -> Tuple[B.Numeric]:
+def inputs(request) -> tuple[B.Numeric]:
     """
     Returns a tuple (space, eigenfunctions, X, X2, weights) where:
     - space is a HammingGraph object with (dim, n_cat) equal to request.param,

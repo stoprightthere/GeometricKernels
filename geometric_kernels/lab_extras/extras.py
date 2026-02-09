@@ -1,8 +1,6 @@
 import lab as B
-from beartype.typing import List
 from lab import dispatch
 from lab.util import abstract
-from plum import Union
 from scipy.sparse import spmatrix
 
 
@@ -23,7 +21,7 @@ def take_along_axis(a: B.Numeric, index: B.Numeric, axis: int = 0):
 
 @dispatch
 @abstract()
-def from_numpy(_: B.Numeric, b: Union[List, B.Numeric]):
+def from_numpy(_: B.Numeric, b: list | B.Numeric):
     """
     Converts the array `b` to a tensor of the same backend as `_`.
 
@@ -290,7 +288,7 @@ def eigvalsh(x: B.Numeric):
 
 @dispatch
 @abstract()
-def reciprocal_no_nan(x: Union[B.Numeric, spmatrix]):
+def reciprocal_no_nan(x: B.Numeric | spmatrix):
     """
     Return element-wise reciprocal (1/x). Whenever x = 0 puts 1/x = 0.
 
@@ -357,9 +355,7 @@ def bool_like(reference: B.Numeric):
     """
 
 
-def smart_cast(
-    dtype: Union[B.Bool, B.Int, B.Float, B.Complex, B.Numeric], x: B.Numeric
-):
+def smart_cast(dtype: B.Bool | B.Int | B.Float | B.Complex | B.Numeric, x: B.Numeric):
     """
     Return `x` cast to the `dtype` abstract data type.
 
