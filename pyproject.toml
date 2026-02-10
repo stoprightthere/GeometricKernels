@@ -25,7 +25,7 @@ dependencies = [
     "backends>=1.8.0",
     "einops",
     "geomstats",
-    "numpy>=2.0",
+    "numpy>=2.0,<2.4",   # constraining from above due to geomstats==2.8.0 incompatibility
     "opt-einsum",
     "plum-dispatch>=2.6.0",
     "potpourri3d",
