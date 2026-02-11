@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v0.4.2 - 11.02.2026
+Maintance release (https://github.com/geometric-kernels/GeometricKernels/pull/173).
+* Fix compatibility with modern `plum-dispatch`/`numpy`.
+* Replace legacy `plum` typing aliases with modern Python type syntax.
+* Drop Python 3.9 support.
+* Discontinue testing for `gpflow` due to incompatibility with the latest `setuptools`.
+
 ## v0.4.1 - 15.12.2025
 * HammingGraph space by @colmont in https://github.com/geometric-kernels/GeometricKernels/pull/170
 * Added a link to a pull request example in README by @vabor112 in https://github.com/geometric-kernels/GeometricKernels/pull/171
