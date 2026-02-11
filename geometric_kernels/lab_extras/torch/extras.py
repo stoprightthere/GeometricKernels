@@ -1,14 +1,15 @@
+from typing import TypeAlias
+
 import lab as B
 import torch
-from beartype.typing import Any, List, Optional
+from beartype.typing import Any
 from lab import dispatch
-from plum import Union
 
-_Numeric = Union[B.Number, B.TorchNumeric]
+_Numeric: TypeAlias = B.Number | B.TorchNumeric
 
 
 @dispatch
-def take_along_axis(a: Union[_Numeric, B.Numeric], index: _Numeric, axis: int = 0) -> _Numeric:  # type: ignore
+def take_along_axis(a: _Numeric | B.Numeric, index: B.TorchNumeric, axis: int = 0) -> _Numeric:  # type: ignore
     """
     Gathers elements of `a` along `axis` at `index` locations.
     """
@@ -19,7 +20,7 @@ def take_along_axis(a: Union[_Numeric, B.Numeric], index: _Numeric, axis: int = 
 
 @dispatch
 def from_numpy(
-    a: B.TorchNumeric, b: Union[List, B.Number, B.NPNumeric, B.TorchNumeric]
+    a: B.TorchNumeric, b: list | B.Number | B.NPNumeric | B.TorchNumeric
 ):  # type: ignore
     """
     Converts the array `b` to a tensor of the same backend as `a`
@@ -38,7 +39,7 @@ def trapz(y: B.TorchNumeric, x: _Numeric, dx: _Numeric = 1.0, axis: int = -1):  
 
 
 @dispatch
-def norm(x: _Numeric, ord: Optional[Any] = None, axis: Optional[int] = None):  # type: ignore
+def norm(x: _Numeric, ord: Any | None = None, axis: int | None = None):  # type: ignore
     """
     Matrix or vector norm.
     """

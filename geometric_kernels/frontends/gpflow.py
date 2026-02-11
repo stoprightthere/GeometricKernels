@@ -6,13 +6,40 @@ a geometric space is available in the
 :doc:`frontends/GPflow.ipynb </examples/frontends/GPflow>` notebook.
 """
 
-import gpflow
 import numpy as np
 import tensorflow as tf
 from beartype.typing import List, Optional, Union
-from gpflow.base import TensorType
-from gpflow.kernels.base import ActiveDims
-from gpflow.utilities import positive
+
+try:
+    import gpflow
+    from gpflow.base import TensorType
+    from gpflow.kernels.base import ActiveDims
+    from gpflow.utilities import positive
+except ImportError as error:
+    seen = set()
+    current: BaseException | None = error
+    missing_pkg_resources = False
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if getattr(current, "name", None) == "pkg_resources":
+            missing_pkg_resources = True
+            break
+        text = str(current)
+        if "pkg_resources" in text and (
+            "No module named" in text or "cannot import name" in text
+        ):
+            missing_pkg_resources = True
+            break
+        current = current.__cause__ or current.__context__
+
+    if missing_pkg_resources:
+        raise ImportError(
+            "Importing `gpflow` failed because it depends on `pkg_resources`. "
+            "`pkg_resources` was removed from `setuptools==82.0.0`. "
+            "You can try pinning an older `setuptools` version, but this setup "
+            "is no longer tested by GeometricKernels."
+        ) from error
+    raise
 
 from geometric_kernels.kernels import BaseGeometricKernel
 from geometric_kernels.spaces import Space
