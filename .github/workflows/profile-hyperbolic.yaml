@@ -1,0 +1,91 @@
+name: ProfileHyperbolic
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  profile-hyperbolic-node:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    runs-on: ubuntu-latest
+    name: ubuntu-latest / Python-${{ matrix.python-version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
+
+      - name: Install dependencies
+        run: UV_PYTHON=python${{ matrix.python-version }} make sync
+
+      - name: Collect Environment Snapshot
+        run: |
+          mkdir -p profiling/py${{ matrix.python-version }}
+          uv run --python ${{ matrix.python-version }} python -V | tee profiling/py${{ matrix.python-version }}/python-version.txt
+          uv run --python ${{ matrix.python-version }} python - <<'PY' > profiling/py${{ matrix.python-version }}/package-versions.txt
+          from importlib.metadata import PackageNotFoundError, version
+
+          packages = [
+              "geometric-kernels",
+              "numpy",
+              "scipy",
+              "backends",
+              "lab",
+              "plum-dispatch",
+              "geomstats",
+              "spherical-harmonics-basis",
+              "sympy",
+              "jax",
+              "jaxlib",
+              "tensorflow",
+              "tensorflow-probability",
+              "torch",
+              "pytest",
+          ]
+          for pkg in packages:
+              try:
+                  print(f"{pkg}=={version(pkg)}")
+              except PackageNotFoundError:
+                  print(f"{pkg}==MISSING")
+          PY
+          uv run --python ${{ matrix.python-version }} python -m pip freeze > profiling/py${{ matrix.python-version }}/pip-freeze.txt
+
+      - name: Run Single Node With cProfile
+        run: |
+          set -o pipefail
+          uv run --python ${{ matrix.python-version }} \
+            python -m cProfile -o profiling/py${{ matrix.python-version }}/hyperbolic-node.pstats \
+            -m pytest -q -s --maxfail=1 --durations=20 \
+            "tests/spaces/test_hyperbolic.py::test_equivalence_kernel[numpy-2.0-2]" \
+            2>&1 | tee profiling/py${{ matrix.python-version }}/pytest-output.txt
+
+      - name: Summarize pstats
+        if: always()
+        run: |
+          if [ -f profiling/py${{ matrix.python-version }}/hyperbolic-node.pstats ]; then
+            uv run --python ${{ matrix.python-version }} \
+              python scripts/summarize_pstats.py \
+              profiling/py${{ matrix.python-version }}/hyperbolic-node.pstats \
+              --out profiling/py${{ matrix.python-version }}/hyperbolic-node-summary.txt \
+              --sort cumtime \
+              --limit 200
+          fi
+
+      - name: Upload Profiling Artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: profile-hyperbolic-py${{ matrix.python-version }}
+          path: profiling/py${{ matrix.python-version }}/**
+          retention-days: 7
+          overwrite: true
