@@ -58,7 +58,7 @@ jobs:
               except PackageNotFoundError:
                   print(f"{pkg}==MISSING")
           PY
-          uv run --python ${{ matrix.python-version }} python -m pip freeze > profiling/py${{ matrix.python-version }}/pip-freeze.txt
+          uv pip freeze --python ${{ matrix.python-version }} > profiling/py${{ matrix.python-version }}/pip-freeze.txt
 
       - name: Run Single Node With cProfile
         run: |
