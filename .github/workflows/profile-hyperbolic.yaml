@@ -60,12 +60,17 @@ jobs:
           PY
           uv pip freeze --python ${{ matrix.python-version }} > profiling/py${{ matrix.python-version }}/pip-freeze.txt
 
-      - name: Run Single Node With cProfile
+      - name: Run Single Node With cProfile + Plum Diagnostics
         run: |
           set -o pipefail
           uv run --python ${{ matrix.python-version }} \
-            python -m cProfile -o profiling/py${{ matrix.python-version }}/hyperbolic-node.pstats \
-            -m pytest -q -s --maxfail=1 --durations=20 \
+            python scripts/profile_hyperbolic_node.py \
+            --pstats-out profiling/py${{ matrix.python-version }}/hyperbolic-node.pstats \
+            --pending-out profiling/py${{ matrix.python-version }}/plum-pending-report.txt \
+            --pending-json-out profiling/py${{ matrix.python-version }}/plum-pending.json \
+            --limit 300 \
+            -- \
+            -q -s --maxfail=1 --durations=20 \
             "tests/spaces/test_hyperbolic.py::test_equivalence_kernel[numpy-2.0-2]" \
             2>&1 | tee profiling/py${{ matrix.python-version }}/pytest-output.txt
 
