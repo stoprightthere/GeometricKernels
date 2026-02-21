@@ -105,5 +105,6 @@ dev = [
   'jaxlib',
   'jaxtyping',
   'optax',
-  'gpjax>=0.12.2; python_version >= "3.10"',  # gpjax requires python >= 3.10.
+  'gpjax>=0.12.2',
+  'orbax-checkpoint==0.11.32; platform_system == "Windows"',   # newer version depends on uvloop, unavailable in windows
 ]
