@@ -107,4 +107,5 @@ dev = [
   'optax',
   'gpjax>=0.12.2',
   'orbax-checkpoint==0.11.32; platform_system == "Windows"',   # newer version depends on uvloop, unavailable in windows
+  'pywin32-ctypes; platform_system == "Windows"',  # marker probe for CI: should install only on Windows
 ]
