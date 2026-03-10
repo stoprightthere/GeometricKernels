@@ -34,7 +34,7 @@ dependencies = [
     "spherical-harmonics-basis",
     "sympy~=1.13",
 ]
-version="0.4.2"
+version="1.0.0"
 
 [project.urls]
 Documentation = "https://geometric-kernels.github.io/"
@@ -94,11 +94,10 @@ dev = [
   "botorch>=0.9",
 
   # TensorFlow / GPflow / TFP split
-  'tensorflow',
-  'tensorflow-probability; python_version < "3.12"',
-  'tensorflow-probability>=0.25; python_version >= "3.12"',
+  'tensorflow<=2.20.0',
+  'tensorflow-probability<=0.25.0',
   'gpflow',
-  'tf_keras',
+  'tf_keras<=2.20.1',
 
   # JAX family
   'jax',
