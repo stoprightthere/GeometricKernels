@@ -61,6 +61,11 @@ class Eigenfunctions(abc.ABC):
     for all $0 \leq l < L$, and all pairs $x_1$, $x_2$ provided as inputs.
     """
 
+    # Set to True when weighted_outerproduct_log and
+    # weighted_outerproduct_diag_log are implemented without first
+    # exponentiating per-eigenfunction weights.
+    supports_log_domain = False
+
     def weighted_outerproduct(
         self,
         weights: B.Numeric,

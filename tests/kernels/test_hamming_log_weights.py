@@ -370,9 +370,11 @@ def test_other_feature_map_defaults_unchanged():
 
 
 @pytest.mark.parametrize("space", [HypercubeGraph(6), HammingGraph(6, 4)])
-def test_normalized_addition_theorem(space):
+def test_phi_product_log(space):
     phi = space.get_eigenfunctions(5)
     x = points(6)
-    actual = phi.phi_product_normalized(x, dtype=np.float64)
-    expected = phi.phi_product(x) / np.array(phi.num_eigenfunctions_per_level)
-    np.testing.assert_allclose(actual, expected, atol=1e-12)
+    log_magnitude, sign = phi.phi_product_log(x, dtype=np.float64)
+    expected = phi.phi_product(x)
+    with np.errstate(divide="ignore"):
+        np.testing.assert_allclose(log_magnitude, np.log(np.abs(expected)), atol=1e-12)
+    np.testing.assert_array_equal(sign, np.sign(expected))

@@ -14,6 +14,8 @@ class MaternKarhunenLoeveLogDomain(MaternKarhunenLoeveKernel):
 
     Eigenfunctions provide independent log multiplicities, allowing the
     normalizer to be evaluated even when linear multiplicities overflow.
+    Eigenfunctions with ``supports_log_domain`` can also evaluate kernel
+    matrices without forming linear per-eigenfunction weights.
     """
 
     @staticmethod
@@ -63,7 +65,7 @@ class MaternKarhunenLoeveLogDomain(MaternKarhunenLoeveKernel):
         return B.exp(self.log_eigenvalues(params))
 
     def K(self, params, X, X2=None, **kwargs):
-        if not hasattr(self.eigenfunctions, "weighted_outerproduct_log"):
+        if not self.eigenfunctions.supports_log_domain:
             return super().K(params, X, X2, **kwargs)
         result = self.eigenfunctions.weighted_outerproduct_log(
             self.log_eigenvalues(params), X, X2, **kwargs
@@ -71,7 +73,7 @@ class MaternKarhunenLoeveLogDomain(MaternKarhunenLoeveKernel):
         return B.real(result) if is_complex(result) else result
 
     def K_diag(self, params, X, **kwargs):
-        if not hasattr(self.eigenfunctions, "weighted_outerproduct_diag_log"):
+        if not self.eigenfunctions.supports_log_domain:
             return super().K_diag(params, X, **kwargs)
         result = self.eigenfunctions.weighted_outerproduct_diag_log(
             self.log_eigenvalues(params), X, **kwargs

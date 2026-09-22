@@ -1,7 +1,6 @@
 """Log-domain random-phase features for discrete-spectrum spaces."""
 
 import lab as B
-import numpy as np
 from beartype.typing import Dict, Tuple
 
 from geometric_kernels.feature_maps.random_phase import RandomPhaseFeatureMapCompact
@@ -13,9 +12,9 @@ class RandomPhaseFeatureMapLogDomain(RandomPhaseFeatureMapCompact):
     """Random-phase features with log-domain spectral weighting.
 
     Sampling, feature ordering, and row normalization follow
-    :class:`RandomPhaseFeatureMapCompact`. The log-domain computation avoids
-    premature spectral underflow. Eigenfunctions that provide normalized
-    addition-theorem values also avoid forming large multiplicities.
+    :class:`RandomPhaseFeatureMapCompact`. When the eigenfunctions support log
+    products, the map avoids premature spectral underflow and large
+    multiplicities. Otherwise it uses the standard compact feature map.
 
     :param space:
         A discrete-spectrum space with random sampling and addition-theorem
@@ -49,6 +48,9 @@ class RandomPhaseFeatureMapLogDomain(RandomPhaseFeatureMapCompact):
         Normalization produces unit-norm feature rows; unnormalized features
         can still exceed the floating-point range.
         """
+        if not self.eigenfunctions.supports_log_domain:
+            return super().__call__(X, params, key=key, normalize=normalize, **kwargs)
+
         from geometric_kernels.kernels.karhunen_loeve_log_domain import (
             MaternKarhunenLoeveLogDomain,
         )
@@ -64,30 +66,12 @@ class RandomPhaseFeatureMapLogDomain(RandomPhaseFeatureMapCompact):
         return key, self._features_from_log_spectrum(log_spectrum, X, phases, normalize)
 
     def _features_from_log_spectrum(self, log_spectrum, X, phases, normalize):
-        if hasattr(self.eigenfunctions, "phi_product_normalized"):
-            values = self.eigenfunctions.phi_product_normalized(
-                X, phases, dtype=B.dtype(log_spectrum)
-            )
-            log_multiplicities = B.cast(
-                B.dtype(log_spectrum),
-                from_numpy(
-                    log_spectrum,
-                    self.eigenfunctions.log_num_eigenfunctions_per_level,
-                ),
-            )[:, None]
-        else:
-            values = self.eigenfunctions.phi_product(X, phases)
-            log_multiplicities = 0.0
-        nonzero = values != 0
-        # Avoid log(0) in the differentiation graph, including masked branches.
-        abs_values = B.abs(values)
-        safe_abs = B.where(nonzero, abs_values, B.ones(abs_values))
-        log_magnitude = B.log(safe_abs) + B.transpose(
-            0.5 * log_spectrum + log_multiplicities
+        log_phi_magnitude, signs = self.eigenfunctions.phi_product_log(
+            X, phases, dtype=B.dtype(log_spectrum)
         )
-        log_magnitude = B.where(nonzero, log_magnitude, -np.inf)
+        log_magnitude = log_phi_magnitude + B.transpose(0.5 * log_spectrum)
         log_magnitude = B.reshape(log_magnitude, X.shape[0], -1)
-        signs = B.reshape(values / safe_abs, X.shape[0], -1)
+        signs = B.reshape(signs, X.shape[0], -1)
         if normalize:
             log_magnitude = log_magnitude - B.max(log_magnitude, axis=1, squeeze=False)
             log_magnitude = log_magnitude - 0.5 * B.logsumexp(

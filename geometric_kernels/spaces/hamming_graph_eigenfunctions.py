@@ -18,12 +18,14 @@ class HammingGraphEigenfunctions:
     binary hypercube and :class:`~.hamming_graph.VilenkinFunctions` on q-ary
     Hamming graphs. It evaluates their normalized Kravchuk polynomials and
     combines spectral weights with level multiplicities for kernel evaluation.
-    Feature maps can use its normalized addition-theorem values and log
-    multiplicities without forming large intermediate values.
+    Feature maps can use its log addition-theorem values without forming large
+    multiplicities.
 
     Subclasses provide ``dim`` and ``num_levels``. The alphabet size is given
     by ``n_cat`` when present and defaults to two for the hypercube.
     """
+
+    supports_log_domain = True
 
     @cached_property
     def log_num_eigenfunctions_per_level(self):
@@ -84,13 +86,16 @@ class HammingGraphEigenfunctions:
         diagonal = B.sum(B.exp(log_weights + self._log_multiplicities(log_weights)))
         return diagonal * B.ones(B.dtype(log_weights), X.shape[0])
 
-    def phi_product_normalized(self, X, X2=None, *, dtype):
-        """Addition-theorem values divided by each level's multiplicity.
-
-        Returns normalized Kravchuk values with shape [N, N2, L], without
-        forming the potentially large multiplicities. ``dtype`` specifies the
-        floating-point dtype used to evaluate the recurrence.
-        """
+    def phi_product_log(self, X, X2=None, *, dtype, **kwargs):
+        """Return log magnitudes and signs without forming multiplicities."""
         if X2 is None:
             X2 = X
-        return B.stack(*self._normalized_kravchuk(X, X2, dtype), axis=-1)
+        values = B.stack(*self._normalized_kravchuk(X, X2, dtype), axis=-1)
+        nonzero = values != 0
+        magnitudes = B.abs(values)
+        safe_magnitudes = B.where(nonzero, magnitudes, B.ones(magnitudes))
+        log_magnitudes = B.log(safe_magnitudes) + B.transpose(
+            self._log_multiplicities(values)
+        )
+        log_magnitudes = B.where(nonzero, log_magnitudes, float("-inf"))
+        return log_magnitudes, values / safe_magnitudes

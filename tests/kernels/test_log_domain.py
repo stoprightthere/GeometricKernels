@@ -17,6 +17,12 @@ def params(nu=1.5, lengthscale=0.7):
     return {"nu": np.array([nu]), "lengthscale": np.array([lengthscale])}
 
 
+def test_log_domain_support_flag():
+    assert not Circle().get_eigenfunctions(4).supports_log_domain
+    assert HypercubeGraph(6).get_eigenfunctions(4).supports_log_domain
+    assert HammingGraph(6, 4).get_eigenfunctions(4).supports_log_domain
+
+
 @pytest.mark.parametrize("space", [Circle(), HypercubeGraph(6), HammingGraph(6, 4)])
 def test_log_kernel_matches_linear_kernel_on_small_spaces(space):
     levels = 4
@@ -55,6 +61,15 @@ def test_log_kernel_evaluates_when_all_linear_eigenvalues_underflow():
     assert np.all(kernel.eigenvalues(p) == 0)
     np.testing.assert_allclose(kernel.K(p, x), [[1]], atol=1e-11)
     np.testing.assert_allclose(kernel.K_diag(p, x), [1], atol=1e-11)
+
+
+def test_phi_product_log_exceeds_linear_range():
+    phi = HammingGraph(1024, 20).get_eigenfunctions(600)
+    x = np.zeros((1, 1024), dtype=int)
+    log_magnitude, sign = phi.phi_product_log(x, dtype=np.float64)
+    assert np.isfinite(log_magnitude[0, 0, 599])
+    assert log_magnitude[0, 0, 599] > np.log(np.finfo(float).max)
+    assert sign[0, 0, 599] == 1
 
 
 def test_random_phase_map_works_on_non_hamming_space():
