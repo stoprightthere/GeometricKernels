@@ -92,6 +92,12 @@ def test_numbers_of_eigenfunctions(inputs):
     # Check that `num_eigenfunctions_per_level` sum up to the total number of
     # eigenfunctions.
     assert num_eigenfunctions_manual == eigenfunctions.num_eigenfunctions
+    np.testing.assert_allclose(
+        eigenfunctions.log_num_eigenfunctions_per_level,
+        np.log(np.asarray(eigenfunctions.num_eigenfunctions_per_level, dtype=float)),
+        rtol=1e-12,
+        atol=1e-12,
+    )
 
 
 @pytest.mark.parametrize("backend", ["numpy", "tensorflow", "torch", "jax"])

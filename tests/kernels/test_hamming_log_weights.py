@@ -10,7 +10,7 @@ import pytest
 
 from geometric_kernels.feature_maps import (
     DeterministicFeatureMapCompact,
-    RandomPhaseFeatureMapHammingGraph,
+    RandomPhaseFeatureMapLogDomain,
 )
 from geometric_kernels.kernels import MaternGeometricKernel, MaternKarhunenLoeveKernel
 from geometric_kernels.kernels.matern_kernel_hamming_graph import (
@@ -127,7 +127,7 @@ def test_deterministic_features(normalize, nu):
 def test_random_features_preserve_values(space, normalize):
     p = params()
     x = points(6)
-    fmap = RandomPhaseFeatureMapHammingGraph(space, 5, 11)
+    fmap = RandomPhaseFeatureMapLogDomain(space, 5, 11)
     _, phases = space.random(np.random.RandomState(23), 11)
     spectrum = MaternKarhunenLoeveKernel.spectrum(
         space.get_eigenvalues(5), p["nu"], p["lengthscale"], 6
@@ -168,7 +168,7 @@ def test_backends(backend, dtype):
         np.testing.assert_allclose(B.to_numpy(full.K_diag(p, x)), 1, atol=tol)
         assert np.all(np.isfinite(B.to_numpy(full.K(p, x))))
     # Explicit phase locations avoid backend-specific RNG differences.
-    fmap = RandomPhaseFeatureMapHammingGraph(HammingGraph(1024, 20), 24)
+    fmap = RandomPhaseFeatureMapLogDomain(HammingGraph(1024, 20), 24)
     log_spectrum = kernel.log_spectrum(
         cast(np.arange(24, dtype=dtype)[:, None] / 1024),
         p["nu"],
@@ -190,7 +190,7 @@ def test_gradients(backend, nu, dtype, diagonal_only):
     x = np_to_backend(points(8), backend)
     kernel = MaternKernelHammingGraph(HammingGraph(8, 4), 6)
     full = MaternKernelHammingGraph(HammingGraph(8, 4), 9)
-    fmap = RandomPhaseFeatureMapHammingGraph(kernel.space, kernel.num_levels)
+    fmap = RandomPhaseFeatureMapLogDomain(kernel.space, kernel.num_levels)
 
     def objective(theta):
         p = {
@@ -268,17 +268,22 @@ def test_other_spaces_keep_standard_computation():
     kernel = MaternGeometricKernel(Circle(), num=5)
     assert type(kernel) is MaternKarhunenLoeveKernel
     assert not hasattr(kernel, "log_spectrum")
-    assert not hasattr(kernel.eigenfunctions, "log_num_eigenfunctions_per_level")
+    np.testing.assert_allclose(
+        kernel.eigenfunctions.log_num_eigenfunctions_per_level,
+        np.log(kernel.eigenfunctions.num_eigenfunctions_per_level),
+    )
 
 
-def test_explicit_feature_weights_do_not_underflow_prematurely():
-    space = HypercubeGraph(512)
+def test_explicit_feature_weights_use_linear_spectrum():
+    space = HypercubeGraph(6)
     fmap = DeterministicFeatureMapCompact(space, 1)
-    p = params(lengthscale=0.1)
-    x = points(512)
+    p = params(lengthscale=0.7)
+    x = points(6)
     _, raw = fmap(x, p, normalize=False)
-    assert np.all(raw > 0)
-    assert np.all(raw**2 == 0)
+    spectrum = MaternKarhunenLoeveKernel.spectrum(
+        space.get_repeated_eigenvalues(1), p["nu"], p["lengthscale"], 6
+    )
+    np.testing.assert_allclose(raw, np.full_like(raw, np.sqrt(spectrum)[0, 0]))
     _, normalized = fmap(x, p)
     np.testing.assert_array_equal(normalized, np.ones((3, 1)))
 
@@ -287,7 +292,7 @@ def test_explicit_feature_weights_do_not_underflow_prematurely():
 @pytest.mark.parametrize("d", [32, 128, 1024])
 def test_large_random_features_finite_spectrum(d, q):
     space = HammingGraph(d, q)
-    fmap = RandomPhaseFeatureMapHammingGraph(space, min(24, d + 1), 4)
+    fmap = RandomPhaseFeatureMapLogDomain(space, min(24, d + 1), 4)
     _, f = fmap(points(d), params(lengthscale=0.1), key=np.random.RandomState(4))
     assert np.all(np.isfinite(f))
     np.testing.assert_allclose(np.sum(f**2, axis=1), 1, atol=1e-10)
@@ -341,11 +346,11 @@ def test_default_log_random_features(space):
         default_feature_map(space=space, num=12),
         default_feature_map(kernel=kernel),
     ]:
-        assert type(fmap) is RandomPhaseFeatureMapHammingGraph
+        assert type(fmap) is RandomPhaseFeatureMapLogDomain
         assert fmap.num_levels == 12
         assert not hasattr(fmap.eigenfunctions, "_random_phase_features")
     _, fmap = MaternGeometricKernel(space, num=12, return_feature_map=True)
-    assert type(fmap) is RandomPhaseFeatureMapHammingGraph
+    assert type(fmap) is RandomPhaseFeatureMapLogDomain
 
 
 def test_other_feature_map_defaults_unchanged():
@@ -361,8 +366,7 @@ def test_other_feature_map_defaults_unchanged():
         type(default_feature_map(space=SpecialOrthogonal(3), num=3))
         is RandomPhaseFeatureMapCompact
     )
-    with pytest.raises(ValueError, match="HammingGraph or HypercubeGraph"):
-        RandomPhaseFeatureMapHammingGraph(Circle(), 3)
+    assert RandomPhaseFeatureMapLogDomain(Circle(), 3).num_levels == 3
 
 
 @pytest.mark.parametrize("space", [HypercubeGraph(6), HammingGraph(6, 4)])

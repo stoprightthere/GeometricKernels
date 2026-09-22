@@ -282,6 +282,10 @@ class WeylAdditionTheorem(EigenfunctionsWithAdditionTheorem):
         """
         return [d**2 for d in self._dimensions]
 
+    @property
+    def log_num_eigenfunctions_per_level(self):
+        return [2.0 * np.log(d) for d in self._dimensions]
+
 
 class CompactMatrixLieGroup(DiscreteSpectrumSpace):
     r"""

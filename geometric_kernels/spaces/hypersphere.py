@@ -7,6 +7,7 @@ import geomstats as gs
 import lab as B
 import numpy as np
 from beartype.typing import List, Optional
+from scipy.special import gammaln
 from spherical_harmonics import SphericalHarmonics as _SphericalHarmonics
 from spherical_harmonics.fundamental_set import num_harmonics
 
@@ -116,6 +117,17 @@ class SphericalHarmonics(EigenfunctionsWithAdditionTheorem):
     @property
     def num_eigenfunctions_per_level(self) -> List[int]:
         return [num_harmonics(self.dim + 1, level) for level in range(self.num_levels)]
+
+    @property
+    def log_num_eigenfunctions_per_level(self):
+        levels = np.arange(self.num_levels, dtype=float)
+        d = self.dim
+        return (
+            np.log(2 * levels + d - 1)
+            + gammaln(levels + d - 1)
+            - gammaln(levels + 1)
+            - gammaln(d)
+        )
 
 
 class Hypersphere(DiscreteSpectrumSpace, gs.geometry.hypersphere.Hypersphere):

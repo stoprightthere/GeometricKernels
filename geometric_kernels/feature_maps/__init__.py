@@ -15,8 +15,8 @@ from geometric_kernels.feature_maps.random_phase import (
     RandomPhaseFeatureMapCompact,
     RandomPhaseFeatureMapNoncompact,
 )
-from geometric_kernels.feature_maps.random_phase_hamming_graph import (
-    RandomPhaseFeatureMapHammingGraph,
+from geometric_kernels.feature_maps.random_phase_log_domain import (
+    RandomPhaseFeatureMapLogDomain,
 )
 from geometric_kernels.feature_maps.rejection_sampling import (
     RejectionSamplingFeatureMapHyperbolic,

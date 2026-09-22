@@ -11,9 +11,7 @@ from beartype.typing import Dict, Optional, Tuple
 from geometric_kernels.feature_maps.base import FeatureMap
 from geometric_kernels.spaces import (
     DiscreteSpectrumSpace,
-    HammingGraph,
     HodgeDiscreteSpectrumSpace,
-    HypercubeGraph,
 )
 from geometric_kernels.spaces.eigenfunctions import Eigenfunctions
 
@@ -106,34 +104,18 @@ class DeterministicFeatureMapCompact(FeatureMap):
         """
         from geometric_kernels.kernels.karhunen_loeve import MaternKarhunenLoeveKernel
 
-        if isinstance(self.space, (HypercubeGraph, HammingGraph)):
-            from geometric_kernels.kernels.matern_kernel_hamming_graph import (
-                MaternKernelHammingGraph,
-            )
+        spectrum = MaternKarhunenLoeveKernel.spectrum(
+            self._repeated_eigenvalues,
+            nu=params["nu"],
+            lengthscale=params["lengthscale"],
+            dimension=self.space.dimension,
+        )
 
-            log_spectrum = MaternKernelHammingGraph.log_spectrum(
-                self._repeated_eigenvalues,
-                params["nu"],
-                params["lengthscale"],
-                self.space.dimension,
-            )
-            if normalize:
-                log_spectrum = log_spectrum - B.max(log_spectrum)
-                log_spectrum = log_spectrum - B.logsumexp(log_spectrum)
-            weights = B.transpose(B.exp(0.5 * log_spectrum))
-        else:
-            spectrum = MaternKarhunenLoeveKernel.spectrum(
-                self._repeated_eigenvalues,
-                nu=params["nu"],
-                lengthscale=params["lengthscale"],
-                dimension=self.space.dimension,
-            )
+        if normalize:
+            normalizer = B.sum(spectrum)
+            spectrum = spectrum / normalizer
 
-            if normalize:
-                normalizer = B.sum(spectrum)
-                spectrum = spectrum / normalizer
-
-            weights = B.transpose(B.power(spectrum, 0.5))  # [1, M]
+        weights = B.transpose(B.power(spectrum, 0.5))  # [1, M]
         eigenfunctions = self._eigenfunctions(X, **kwargs)  # [N, M]
 
         features = B.cast(B.dtype(params["lengthscale"]), eigenfunctions) * B.cast(

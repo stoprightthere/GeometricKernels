@@ -360,6 +360,20 @@ class ProductEigenfunctions(Eigenfunctions):
 
         return totals
 
+    @property
+    def log_num_eigenfunctions_per_level(self):
+        factor_logs = [
+            eigenfunctions.log_num_eigenfunctions_per_level
+            for eigenfunctions in self.eigenfunctions
+        ]
+        return [
+            sum(
+                factor_logs[s][self.eigenindicies[level, s]]
+                for s in range(len(factor_logs))
+            )
+            for level in range(self.num_levels)
+        ]
+
 
 class ProductDiscreteSpectrumSpace(DiscreteSpectrumSpace):
     r"""

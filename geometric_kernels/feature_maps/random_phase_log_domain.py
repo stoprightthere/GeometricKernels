@@ -1,29 +1,25 @@
-"""Log-domain random-phase features for hypercube and Hamming graphs."""
+"""Log-domain random-phase features for discrete-spectrum spaces."""
 
 import lab as B
 import numpy as np
-from beartype.typing import Dict, Tuple, Union
+from beartype.typing import Dict, Tuple
 
 from geometric_kernels.feature_maps.random_phase import RandomPhaseFeatureMapCompact
 from geometric_kernels.lab_extras import from_numpy, is_complex
-from geometric_kernels.spaces import HammingGraph, HypercubeGraph
+from geometric_kernels.spaces import DiscreteSpectrumSpace
 
 
-class RandomPhaseFeatureMapHammingGraph(RandomPhaseFeatureMapCompact):
-    """Random-phase features with log-domain weighting for Hamming graphs.
-
-    Supports both :class:`~.spaces.HammingGraph` and
-    :class:`~.spaces.HypercubeGraph`. Combines log spectral weights, log
-    multiplicities, and normalized Kravchuk magnitudes before exponentiation.
-    Signs and zero polynomial values are preserved.
+class RandomPhaseFeatureMapLogDomain(RandomPhaseFeatureMapCompact):
+    """Random-phase features with log-domain spectral weighting.
 
     Sampling, feature ordering, and row normalization follow
-    :class:`RandomPhaseFeatureMapCompact`. The log-domain computation prevents
-    premature coefficient underflow and multiplicity overflow, but does not
-    eliminate Kravchuk recurrence error or cancellation.
+    :class:`RandomPhaseFeatureMapCompact`. The log-domain computation avoids
+    premature spectral underflow. Eigenfunctions that provide normalized
+    addition-theorem values also avoid forming large multiplicities.
 
     :param space:
-        A Hamming graph or binary hypercube graph.
+        A discrete-spectrum space with random sampling and addition-theorem
+        eigenfunctions.
     :param num_levels:
         Number of spectral levels to include.
     :param num_random_phases:
@@ -32,12 +28,10 @@ class RandomPhaseFeatureMapHammingGraph(RandomPhaseFeatureMapCompact):
 
     def __init__(
         self,
-        space: Union[HammingGraph, HypercubeGraph],
+        space: DiscreteSpectrumSpace,
         num_levels: int,
         num_random_phases: int = 3000,
     ):
-        if not isinstance(space, (HammingGraph, HypercubeGraph)):
-            raise ValueError("space must be a HammingGraph or HypercubeGraph")
         super().__init__(space, num_levels, num_random_phases)
 
     def __call__(
@@ -55,12 +49,12 @@ class RandomPhaseFeatureMapHammingGraph(RandomPhaseFeatureMapCompact):
         Normalization produces unit-norm feature rows; unnormalized features
         can still exceed the floating-point range.
         """
-        from geometric_kernels.kernels.matern_kernel_hamming_graph import (
-            MaternKernelHammingGraph,
+        from geometric_kernels.kernels.karhunen_loeve_log_domain import (
+            MaternKarhunenLoeveLogDomain,
         )
 
         key, phases = self.space.random(key, self.num_random_phases)
-        log_spectrum = MaternKernelHammingGraph.log_spectrum(
+        log_spectrum = MaternKarhunenLoeveLogDomain.log_spectrum(
             self.space.get_eigenvalues(self.num_levels),
             params["nu"],
             params["lengthscale"],
@@ -70,30 +64,36 @@ class RandomPhaseFeatureMapHammingGraph(RandomPhaseFeatureMapCompact):
         return key, self._features_from_log_spectrum(log_spectrum, X, phases, normalize)
 
     def _features_from_log_spectrum(self, log_spectrum, X, phases, normalize):
-        polynomials = self.eigenfunctions.phi_product_normalized(
-            X, phases, dtype=B.dtype(log_spectrum)
-        )
-        log_multiplicities = B.cast(
-            B.dtype(log_spectrum),
-            from_numpy(
-                log_spectrum, self.eigenfunctions.log_num_eigenfunctions_per_level
-            ),
-        )[:, None]
-        nonzero = polynomials != 0
+        if hasattr(self.eigenfunctions, "phi_product_normalized"):
+            values = self.eigenfunctions.phi_product_normalized(
+                X, phases, dtype=B.dtype(log_spectrum)
+            )
+            log_multiplicities = B.cast(
+                B.dtype(log_spectrum),
+                from_numpy(
+                    log_spectrum,
+                    self.eigenfunctions.log_num_eigenfunctions_per_level,
+                ),
+            )[:, None]
+        else:
+            values = self.eigenfunctions.phi_product(X, phases)
+            log_multiplicities = 0.0
+        nonzero = values != 0
         # Avoid log(0) in the differentiation graph, including masked branches.
-        safe_abs = B.where(nonzero, B.abs(polynomials), B.ones(polynomials))
+        abs_values = B.abs(values)
+        safe_abs = B.where(nonzero, abs_values, B.ones(abs_values))
         log_magnitude = B.log(safe_abs) + B.transpose(
             0.5 * log_spectrum + log_multiplicities
         )
         log_magnitude = B.where(nonzero, log_magnitude, -np.inf)
         log_magnitude = B.reshape(log_magnitude, X.shape[0], -1)
-        signs = B.reshape(B.sign(polynomials), X.shape[0], -1)
+        signs = B.reshape(values / safe_abs, X.shape[0], -1)
         if normalize:
             log_magnitude = log_magnitude - B.max(log_magnitude, axis=1, squeeze=False)
             log_magnitude = log_magnitude - 0.5 * B.logsumexp(
                 2 * log_magnitude, axis=1, squeeze=False
             )
         features = signs * B.exp(log_magnitude)
-        if is_complex(X):
-            features = B.concat(features, B.zeros(features), axis=1)
+        if is_complex(features):
+            features = B.concat(B.real(features), B.imag(features), axis=1)
         return features

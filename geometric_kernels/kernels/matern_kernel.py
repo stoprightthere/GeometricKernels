@@ -13,7 +13,7 @@ from geometric_kernels.feature_maps import (
     DeterministicFeatureMapCompact,
     HodgeDeterministicFeatureMapCompact,
     RandomPhaseFeatureMapCompact,
-    RandomPhaseFeatureMapHammingGraph,
+    RandomPhaseFeatureMapLogDomain,
     RandomPhaseFeatureMapNoncompact,
     RejectionSamplingFeatureMapHyperbolic,
     RejectionSamplingFeatureMapSPD,
@@ -22,8 +22,8 @@ from geometric_kernels.kernels.base import BaseGeometricKernel
 from geometric_kernels.kernels.feature_map import MaternFeatureMapKernel
 from geometric_kernels.kernels.hodge_compositional import MaternHodgeCompositionalKernel
 from geometric_kernels.kernels.karhunen_loeve import MaternKarhunenLoeveKernel
-from geometric_kernels.kernels.matern_kernel_hamming_graph import (
-    MaternKernelHammingGraph,
+from geometric_kernels.kernels.karhunen_loeve_log_domain import (
+    MaternKarhunenLoeveLogDomain,
 )
 from geometric_kernels.spaces import (
     CompactMatrixLieGroup,
@@ -81,8 +81,8 @@ def default_feature_map(
 
 @overload
 def feature_map_from_kernel(kernel: MaternKarhunenLoeveKernel):
-    if isinstance(kernel.space, (HypercubeGraph, HammingGraph)):
-        return RandomPhaseFeatureMapHammingGraph(
+    if isinstance(kernel, MaternKarhunenLoeveLogDomain):
+        return RandomPhaseFeatureMapLogDomain(
             kernel.space,
             kernel.num_levels,
             MaternGeometricKernel._DEFAULT_NUM_RANDOM_PHASES,
@@ -148,7 +148,7 @@ def feature_map_from_kernel(kernel: BaseGeometricKernel):
 @overload
 def feature_map_from_space(space: DiscreteSpectrumSpace, num: int):
     if isinstance(space, (HypercubeGraph, HammingGraph)):
-        return RandomPhaseFeatureMapHammingGraph(
+        return RandomPhaseFeatureMapLogDomain(
             space, num, MaternGeometricKernel._DEFAULT_NUM_RANDOM_PHASES
         )
     elif isinstance(space, CompactMatrixLieGroup):
@@ -357,7 +357,7 @@ class MaternGeometricKernel:
             if isinstance(space, HodgeDiscreteSpectrumSpace):
                 kernel = MaternHodgeCompositionalKernel(space, num, normalize=normalize)
             elif isinstance(space, (HypercubeGraph, HammingGraph)):
-                kernel = MaternKernelHammingGraph(space, num, normalize=normalize)
+                kernel = MaternKarhunenLoeveLogDomain(space, num, normalize=normalize)
             else:
                 kernel = MaternKarhunenLoeveKernel(space, num, normalize=normalize)
             if return_feature_map:

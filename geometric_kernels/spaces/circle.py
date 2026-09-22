@@ -4,6 +4,7 @@ This module provides the :class:`Circle` space and the respective
 """
 
 import lab as B
+from math import log
 from beartype.typing import List, Optional
 
 from geometric_kernels.lab_extras import dtype_double, from_numpy
@@ -120,6 +121,10 @@ class SinCosEigenfunctions(EigenfunctionsWithAdditionTheorem):
             List `result`, such that result[l] = 1 if l = 0 or 2 otherwise.
         """
         return [1 if level == 0 else 2 for level in range(self.num_levels)]
+
+    @property
+    def log_num_eigenfunctions_per_level(self):
+        return [0.0 if level == 0 else log(2.0) for level in range(self.num_levels)]
 
 
 class Circle(DiscreteSpectrumSpace):

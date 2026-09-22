@@ -71,9 +71,18 @@ class HammingGraphEigenfunctions:
         level_weights = B.exp(B.log(weights) + self._log_multiplicities(weights))
         return self._weighted_outerproduct_from_level_weights(level_weights, X, X2)
 
+    def weighted_outerproduct_log(self, log_weights, X, X2=None, **kwargs):
+        log_levels = log_weights + self._log_multiplicities(log_weights)
+        level_weights = B.exp(log_levels)
+        return self._weighted_outerproduct_from_level_weights(level_weights, X, X2)
+
     def weighted_outerproduct_diag(self, weights, X, **kwargs):
         diagonal = B.sum(B.exp(B.log(weights) + self._log_multiplicities(weights)))
         return diagonal * B.ones(B.dtype(weights), X.shape[0])
+
+    def weighted_outerproduct_diag_log(self, log_weights, X, **kwargs):
+        diagonal = B.sum(B.exp(log_weights + self._log_multiplicities(log_weights)))
+        return diagonal * B.ones(B.dtype(log_weights), X.shape[0])
 
     def phi_product_normalized(self, X, X2=None, *, dtype):
         """Addition-theorem values divided by each level's multiplicity.

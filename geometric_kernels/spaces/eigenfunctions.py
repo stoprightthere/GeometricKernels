@@ -219,6 +219,11 @@ class Eigenfunctions(abc.ABC):
         """
         raise NotImplementedError
 
+    @abc.abstractproperty
+    def log_num_eigenfunctions_per_level(self):
+        """Log number of eigenfunctions per level, computed independently."""
+        raise NotImplementedError
+
 
 class EigenfunctionsWithAdditionTheorem(Eigenfunctions):
     r"""
@@ -359,3 +364,7 @@ class EigenfunctionsFromEigenvectors(Eigenfunctions):
         Returns a list of J ones.
         """
         return [1] * self.num_levels
+
+    @property
+    def log_num_eigenfunctions_per_level(self):
+        return [0.0] * self.num_levels
