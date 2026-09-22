@@ -3,8 +3,9 @@ This module provides the :class:`Circle` space and the respective
 :class:`~.eigenfunctions.Eigenfunctions` subclass :class:`SinCosEigenfunctions`.
 """
 
-import lab as B
 from math import log
+
+import lab as B
 from beartype.typing import List, Optional
 
 from geometric_kernels.lab_extras import dtype_double, from_numpy

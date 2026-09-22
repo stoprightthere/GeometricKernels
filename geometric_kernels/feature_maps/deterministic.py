@@ -9,10 +9,7 @@ import lab as B
 from beartype.typing import Dict, Optional, Tuple
 
 from geometric_kernels.feature_maps.base import FeatureMap
-from geometric_kernels.spaces import (
-    DiscreteSpectrumSpace,
-    HodgeDiscreteSpectrumSpace,
-)
+from geometric_kernels.spaces import DiscreteSpectrumSpace, HodgeDiscreteSpectrumSpace
 from geometric_kernels.spaces.eigenfunctions import Eigenfunctions
 
 
